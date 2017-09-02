@@ -18,7 +18,7 @@ float rand(vec2 co)
 
 void main()
 {
-    vec2 circleCenter = vec2(sin(frame_count/100.0), cos(frame_count/100.0))*0.5 + 0.5;
+    vec2 circleCenter = vec2(sin(frame_count/10.0), cos(frame_count/100.0))*0.5 + 0.5;
 
     vec2 uv = o_st - circleCenter;
 
