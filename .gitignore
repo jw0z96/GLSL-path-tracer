@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# some specifics
+CMakeCache.txt
+CMakeFiles/
+GLSLRenderer
+Makefile
+cmake_install.cmake
+
+
+
