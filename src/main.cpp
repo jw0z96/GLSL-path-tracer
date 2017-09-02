@@ -4,8 +4,8 @@
 
 #include "renderengine.h"
 
-const int width = 800;
-const int height = 600;
+const int width = 512;
+const int height = 512;
 
 int main (int argc, char * arg[])
 {

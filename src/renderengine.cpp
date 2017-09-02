@@ -182,7 +182,7 @@ void RenderEngine::draw()
         drawToScreen(screenSpaceQuadVAO, pingPongOutputTex1);
     }
     frameCount++;
-    std::cout<<"frameCount: "<<frameCount<<"\n";
+    /* std::cout<<"frameCount: "<<frameCount<<"\n"; */
 }
 
 unsigned int RenderEngine::shaderCompile(const char* vertSource, const char* fragSource)
@@ -204,7 +204,7 @@ unsigned int RenderEngine::shaderCompile(const char* vertSource, const char* fra
         printf("Vertex Shader ID:%i OpenGL Shader Compile Error at %s", vertShader, buffer);
         printf("Vertex Shader ID:%i OpenGL Shader Compile Error at %s", vertShader, buffer);
     }
- 
+
     unsigned int fragShader = glCreateShader(GL_FRAGMENT_SHADER);
     std::string fragSourceString = stringFromFile(fragSource);
     const GLchar* fragSourceStringGL = fragSourceString.c_str();
