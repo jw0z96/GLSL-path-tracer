@@ -1,14 +1,38 @@
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
 #include <iostream>
+#include <fstream>
 
 #include "renderengine.h"
 
 const int width = 512;
 const int height = 512;
 
-int main (int argc, char * arg[])
+int main (int argc, char *argv[])
 {
+    // DEFAULT SHADER
+    std::string fileName = "shaders/default_frag.glsl";
+
+    // USE PASSED SHADER IF ONE HAS BEEN PARSED, ELSE USE DEFAULT
+    if (argc < 2)
+    {
+        std::cout<<"no shader parsed, using: "<<fileName<<"\n";
+    }
+    else
+    {
+        std::ifstream shaderFile(argv[1]);
+        if (shaderFile.good())
+        {
+            std::cout<<"using shader: "<<argv[1]<<"\n";
+            fileName = argv[1];
+        }
+        else
+        {
+            std::cout<<"file doesnt exist, using: "<<fileName<<"\n";
+        }
+    }
+
+
     // initialise SDL
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
     {
@@ -47,7 +71,7 @@ int main (int argc, char * arg[])
 
     // rendering manager object
     RenderEngine engine;
-    engine.init(width, height);
+    engine.init(width, height, fileName);
 
     // exit flag
     bool quit = false;

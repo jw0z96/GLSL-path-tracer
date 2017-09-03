@@ -13,7 +13,7 @@ class RenderEngine
         // DRAWING FUNCTION, GETS CALLED EACH FRAME UPDATE
         void draw();
         // INIT FRAMEBUFFERS AND TEXTURES
-        void init(unsigned int width, unsigned int height);
+        void init(unsigned int width, unsigned int height, std::string fileName);
 
     private:
         // IMAGE WIDTH AND HEIGHT

@@ -18,7 +18,7 @@ RenderEngine::~RenderEngine()
 }
 
 // INIT FRAMEBUFFERS AND TEXTURES
-void RenderEngine::init(unsigned int width, unsigned int height)
+void RenderEngine::init(unsigned int width, unsigned int height, std::string fileName)
 {
     m_width = width; 
     m_height = height;
@@ -125,7 +125,7 @@ void RenderEngine::init(unsigned int width, unsigned int height)
     glEnableVertexAttribArray(1);
 
     // SHADER SETUP
-    userShader  = shaderCompile("shaders/pt_vert.glsl", "shaders/pt_frag.glsl");
+    userShader  = shaderCompile("shaders/pt_vert.glsl", fileName.c_str());
     outputShader = shaderCompile("shaders/output_vert.glsl", "shaders/output_frag.glsl");
 }
 
@@ -144,14 +144,12 @@ void RenderEngine::draw()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);        
         glViewport(0, 0, m_width, m_height);
             
-        float cam_pos[3] = {cam_x, cam_y, cam_z};        
-        glUniform3fv(glGetUniformLocation(userShader,"cam_pos"), 1, cam_pos);
         glUniform1i(glGetUniformLocation(userShader, "width"), m_width);
         glUniform1i(glGetUniformLocation(userShader, "height"), m_height);
-        glUniform1i(glGetUniformLocation(userShader, "frame_count"), frameCount);
+        glUniform1i(glGetUniformLocation(userShader, "frameCount"), frameCount);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture (GL_TEXTURE_2D, pingPongAccumTex1);
-        glUniform1i(glGetUniformLocation(userShader,"accumulated"), 0);
+        glUniform1i(glGetUniformLocation(userShader,"accumulatedTex"), 0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     } 
     else
@@ -160,14 +158,12 @@ void RenderEngine::draw()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glViewport(0, 0, m_width, m_height);
         
-        float cam_pos[3] = {cam_x, cam_y, cam_z};
-        glUniform3fv(glGetUniformLocation(userShader,"cam_pos"), 1, cam_pos);
         glUniform1i(glGetUniformLocation(userShader, "width"), m_width);
         glUniform1i(glGetUniformLocation(userShader, "height"), m_height);
-        glUniform1i(glGetUniformLocation(userShader, "frame_count"), frameCount);
+        glUniform1i(glGetUniformLocation(userShader, "frameCount"), frameCount);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, pingPongAccumTex0);
-        glUniform1i(glGetUniformLocation(userShader,"accumulated"), 0);
+        glUniform1i(glGetUniformLocation(userShader,"accumulatedTex"), 0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
