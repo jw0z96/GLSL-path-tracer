@@ -42,14 +42,14 @@ void RenderEngine::init(unsigned int width, unsigned int height)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, texData.data());
     glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingPongAccumTex0, 0);
 
-    glGenTextures(1, &pingPongOutputTex0);
-    glBindTexture(GL_TEXTURE_2D, pingPongOutputTex0);
+    glGenTextures(1, &pingPongOutputTex);
+    glBindTexture(GL_TEXTURE_2D, pingPongOutputTex);
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, texData.data());
-    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, pingPongOutputTex0, 0);
+    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, pingPongOutputTex, 0);
 
     GLenum pingPong0_drawBuffs[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
     glDrawBuffers(2, pingPong0_drawBuffs);
@@ -71,14 +71,14 @@ void RenderEngine::init(unsigned int width, unsigned int height)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, texData.data());
     glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingPongAccumTex1, 0);
 
-    glGenTextures(1, &pingPongOutputTex1);
-    glBindTexture(GL_TEXTURE_2D, pingPongOutputTex1);
+    glGenTextures(1, &pingPongOutputTex);
+    glBindTexture(GL_TEXTURE_2D, pingPongOutputTex);
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, texData.data());
-    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, pingPongOutputTex1, 0);
+    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, pingPongOutputTex, 0);
 
     GLenum pingPong1_drawBuffs[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
     glDrawBuffers(2, pingPong0_drawBuffs);
@@ -125,7 +125,7 @@ void RenderEngine::init(unsigned int width, unsigned int height)
     glEnableVertexAttribArray(1);
 
     // SHADER SETUP
-    ptShader  = shaderCompile("shaders/pt_vert.glsl", "shaders/pt_frag.glsl");
+    userShader  = shaderCompile("shaders/pt_vert.glsl", "shaders/pt_frag.glsl");
     outputShader = shaderCompile("shaders/output_vert.glsl", "shaders/output_frag.glsl");
 }
 
@@ -136,7 +136,7 @@ void RenderEngine::draw()
     float cam_y = 0;
     float cam_z = 0;
     
-    glUseProgram(ptShader);
+    glUseProgram(userShader);
     
     if(frameCount%2 == 0)
     {
@@ -145,19 +145,14 @@ void RenderEngine::draw()
         glViewport(0, 0, m_width, m_height);
             
         float cam_pos[3] = {cam_x, cam_y, cam_z};        
-        glUniform3fv(glGetUniformLocation(ptShader,"cam_pos"), 1, cam_pos);
-        glUniform1i(glGetUniformLocation(ptShader, "width"), m_width);
-        glUniform1i(glGetUniformLocation(ptShader, "height"), m_height);
-        glUniform1i(glGetUniformLocation(ptShader, "frame_count"), frameCount);
+        glUniform3fv(glGetUniformLocation(userShader,"cam_pos"), 1, cam_pos);
+        glUniform1i(glGetUniformLocation(userShader, "width"), m_width);
+        glUniform1i(glGetUniformLocation(userShader, "height"), m_height);
+        glUniform1i(glGetUniformLocation(userShader, "frame_count"), frameCount);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture (GL_TEXTURE_2D, pingPongAccumTex1);
-        glUniform1i(glGetUniformLocation(ptShader,"accumulated"), 0);
-            
+        glUniform1i(glGetUniformLocation(userShader,"accumulated"), 0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        drawToScreen(screenSpaceQuadVAO, pingPongOutputTex0);
     } 
     else
     {
@@ -166,20 +161,20 @@ void RenderEngine::draw()
         glViewport(0, 0, m_width, m_height);
         
         float cam_pos[3] = {cam_x, cam_y, cam_z};
-        glUniform3fv(glGetUniformLocation(ptShader,"cam_pos"), 1, cam_pos);
-        glUniform1i(glGetUniformLocation(ptShader, "width"), m_width);
-        glUniform1i(glGetUniformLocation(ptShader, "height"), m_height);
-        glUniform1i(glGetUniformLocation(ptShader, "frame_count"), frameCount);
+        glUniform3fv(glGetUniformLocation(userShader,"cam_pos"), 1, cam_pos);
+        glUniform1i(glGetUniformLocation(userShader, "width"), m_width);
+        glUniform1i(glGetUniformLocation(userShader, "height"), m_height);
+        glUniform1i(glGetUniformLocation(userShader, "frame_count"), frameCount);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, pingPongAccumTex0);
-        glUniform1i(glGetUniformLocation(ptShader,"accumulated"), 0);
-        
+        glUniform1i(glGetUniformLocation(userShader,"accumulated"), 0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        drawToScreen(screenSpaceQuadVAO, pingPongOutputTex1);
     }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    drawToScreen(screenSpaceQuadVAO, pingPongOutputTex);
+
     frameCount++;
     /* std::cout<<"frameCount: "<<frameCount<<"\n"; */
 }

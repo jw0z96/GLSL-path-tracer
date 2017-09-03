@@ -24,16 +24,16 @@ class RenderEngine
         unsigned int pingPongFBO0, pingPongFBO1;
         // TEXTURES TO ACCUMULATE ALL OF THE SAMPLES
         unsigned int pingPongAccumTex0, pingPongAccumTex1;
-        // TEXTURES TO DISPLAY, GAMMA CORRECTED
-        unsigned int pingPongOutputTex0, pingPongOutputTex1;
+        // TEXTURE TO DISPLAY, GAMMA CORRECTED
+        unsigned int pingPongOutputTex;
         // SCREEN SPACE QUAD VBO
         unsigned int screenSpaceQuadVBO;
         // SCREEN SPACE QUAD UVs
         unsigned int screenSpaceQuadUVs;
         // SCREEN SPACE QUAD VAO
         unsigned int screenSpaceQuadVAO;
-        // PATH TRACING SHADER
-        unsigned int ptShader;
+        // SHADER PASSED BY ARG
+        unsigned int userShader;
         // OUTPUT SHADER
         unsigned int outputShader;
 
