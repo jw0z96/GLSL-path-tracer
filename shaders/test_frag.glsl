@@ -25,8 +25,31 @@ struct Sphere
     vec3 center;
 };
 
-Sphere m_spheres[] = Sphere[](Sphere(1.0, vec3(0.0, 1.0, 0.0)), Sphere(0.5, vec3(0.0, 2.0, 0.0)), Sphere(100.0, vec3(0.0, -100.0, 0.0)));
+struct Light
+{
+    Sphere area;
+    vec3 intensity;
+};
+
+// ARRAY OF SPHERES (OUR GEOMETRY)
+Sphere m_spheres[] = Sphere[](
+        Sphere(1.0, vec3(0.0, 1.0, 0.0)), 
+        Sphere(0.5, vec3(0.0, 2.0, 0.0)), 
+        Sphere(100.0, vec3(0.0, -100.0, 0.0))
+    );
+
+// ARRAY OF LIGHTS
+Light m_lights[] = Light[](
+        Light(Sphere(10.0, vec3(2.0, 5.0, -2.0)), vec3(2.0)),
+        Light(Sphere(10.0, vec3(-2.0, 5.0, -2.0)), vec3(0.5, 0.0, 0.0))
+    );
+
 vec3 m_sphereColors[] = vec3[](vec3(0.6, 0.3, 0.0), vec3(0.4, 0.4, 0.4), vec3(0.2));
+
+float rand(vec2 co)
+{
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
 
 float intersectSphere(Ray ray, Sphere sphere)
 {
@@ -71,25 +94,42 @@ vec3 getNormal(vec3 pos, int objectIndex)
 vec3 getBackgroundColor(Ray ray)
 {
     return mix(vec3(0.0, 0.0, 0.1), vec3(0.8, 0.8, 0.9), (ray.direction.y+1.0)/2.0);
-    /* return vec3(0.0); */
+}
+
+vec3 getRandomLightPoint(Light light)
+{
+    float rng = rand(o_uv + vec2(frameCount));
+    float r = mod(rng, light.area.radius);
+    float l = mod(rng, 2.0*PI);
+    float h = mod(rng, PI) - (PI/2.0);
+    return light.area.center + vec3(r*cos(l)*cos(h), r*sin(h), r*sin(l)*cos(h));
 }
 
 vec3 calculateDirectLighting(Ray surfacePoint)
 {
-    vec3 normal = surfacePoint.direction;
-    vec3 lightPos = 10*vec3(2.0, 5.0, -2.0);
-    vec3 lightVector = normalize(lightPos - surfacePoint.origin);
+    vec3 dcol = vec3(0.0);
 
-    vec2 shadowInfo = intersectScene(Ray(surfacePoint.origin, lightVector));
+    for (int i = 0; i<m_lights.length(); ++i)
+    {
+        // get a random point on the light 
+        vec3 lightPos = getRandomLightPoint(m_lights[i]);
+        /* vec3 lightPos = m_lights[i].area.center; */
 
-    if (shadowInfo.y < 0.0) // IF WE HIT 
-    {
-        return vec3(max(0.0, dot(normal, lightVector)));
+        vec3 lightVector = normalize(lightPos - surfacePoint.origin);
+        vec2 shadowInfo = intersectScene(Ray(surfacePoint.origin, lightVector));
+
+        if (shadowInfo.y < 0.0) // IF WE HIT 
+        {
+            // N DOT L LIGHTING
+            dcol += m_lights[i].intensity * vec3(max(0.0, dot(surfacePoint.direction, lightVector)));
+        }
+        else 
+        {
+            dcol += vec3(0.0);
+        }
     }
-    else 
-    {
-        return vec3(0.0);
-    }
+
+    return dcol;
 }
 
 vec3 calcPixelColor()
@@ -117,7 +157,7 @@ vec3 calcPixelColor()
         if (objectIndex < 0) // IF WE DIDNT HIT OBJECT
         {
             intensity *= getBackgroundColor(ray);
-            totalLight += intensity;// * vec3(0.5);
+            totalLight += intensity * vec3(0.0);
             break;
         }
         else // IF WE DID HIT OBJECT

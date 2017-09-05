@@ -23,12 +23,10 @@ void main()
     if ( (dist > (circle_radius+border)) || (dist < (circle_radius-border)) )
         col = vec3(0.0);
     else
-        col = vec3(frameCount/10.0) * vec3(o_uv,0.0);
+        col = 10*vec3(0.0, o_uv);
 
-    vec3 outCol = col + texture(accumulatedTex, o_uv).rgb;
+    vec3 outCol = mix(texture(accumulatedTex, o_uv).rgb, col, 1.0/float(frameCount));
     totalColor = vec4(outCol, 1.0);
-    
-    float mult = float(1.0/frameCount); // REDUCE THE TOTAL SAMPLES TO A DISPLAYABLE RANGE
-    displayColor = vec4(outCol*mult, 1.0);
+    displayColor = vec4(outCol, 1.0);
 }
 
