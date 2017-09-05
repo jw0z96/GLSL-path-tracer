@@ -11,7 +11,7 @@ layout(location = 0) out vec4 totalColor; // THE COLOR TO WRITE TO THE ACCUMULAT
 layout(location = 1) out vec4 displayColor; // THE COLOR TO DISPLAY ONSCREEN
 
 const float PI = 3.14159265358979323846264338327950288;
-const int MAX_DEPTH = 3;
+const int MAX_DEPTH = 5;
 const float MAX_DRAW_DIST = 100000.0;
 
 struct Ray
@@ -25,7 +25,8 @@ struct Sphere
     vec3 center;
 };
 
-Sphere m_spheres[2] = Sphere[](Sphere(1.0, vec3(0.0)), Sphere(1.0, vec3(0.0, 2.0, 0.0)));
+Sphere m_spheres[] = Sphere[](Sphere(1.0, vec3(0.0, 1.0, 0.0)), Sphere(0.5, vec3(0.0, 2.0, 0.0)), Sphere(100.0, vec3(0.0, -100.0, 0.0)));
+vec3 m_sphereColors[] = vec3[](vec3(0.6, 0.3, 0.0), vec3(0.4, 0.4, 0.4), vec3(0.2));
 
 float intersectSphere(Ray ray, Sphere sphere)
 {
@@ -57,6 +58,40 @@ vec2 intersectScene(Ray ray)
     return vec2(dist, float(hitObject));
 }
 
+vec3 getObjectColor(vec3 pos, int objectIndex)
+{
+    return m_sphereColors[objectIndex];
+}
+
+vec3 getNormal(vec3 pos, int objectIndex)
+{
+    return normalize(pos - m_spheres[objectIndex].center);
+}
+
+vec3 getBackgroundColor(Ray ray)
+{
+    return mix(vec3(0.0, 0.0, 0.1), vec3(0.8, 0.8, 0.9), (ray.direction.y+1.0)/2.0);
+    /* return vec3(0.0); */
+}
+
+vec3 calculateDirectLighting(Ray surfacePoint)
+{
+    vec3 normal = surfacePoint.direction;
+    vec3 lightPos = 10*vec3(2.0, 5.0, -2.0);
+    vec3 lightVector = normalize(lightPos - surfacePoint.origin);
+
+    vec2 shadowInfo = intersectScene(Ray(surfacePoint.origin, lightVector));
+
+    if (shadowInfo.y < 0.0) // IF WE HIT 
+    {
+        return vec3(max(0.0, dot(normal, lightVector)));
+    }
+    else 
+    {
+        return vec3(0.0);
+    }
+}
+
 vec3 calcPixelColor()
 {
     vec2 uv = o_uv*2 - 1.0;
@@ -66,12 +101,12 @@ vec3 calcPixelColor()
     /* float aspectRatio = width/float(height); */
     /* float angle = tan(PI * 0.5 * fov / 180.0); */
    
-    vec3 rayOrigin = vec3(0.0, 0.0, -2.0);
+    vec3 rayOrigin = vec3(0.0, 1.0, -3.0);
     vec3 rayDir = normalize(vec3(uv, 1.0));
     Ray ray = Ray(rayOrigin, rayDir);
 
-    vec3 totalLight = vec3(0.0);
-    vec3 factorLight = vec3(1.0);
+    vec3 totalLight = vec3(0.0); // THE TOTAL LIGHT GATHERED
+    vec3 intensity = vec3(1.0); // LIGHT INTENSITY, DECREASED WITH EACH SURFACE HIT
 
     for (int depth = 0; depth < MAX_DEPTH; ++depth)
     {
@@ -79,16 +114,27 @@ vec3 calcPixelColor()
         float dist = worldInfo.x;
         int objectIndex = int(worldInfo.y);
 
-        if (objectIndex >= 0) // IF WE HIT AN OBJECT
+        if (objectIndex < 0) // IF WE DIDNT HIT OBJECT
         {
-            totalLight += vec3(dist/5);
+            intensity *= getBackgroundColor(ray);
+            totalLight += intensity;// * vec3(0.5);
+            break;
         }
-        else // IF WE HIT THE BACKGROUND
+        else // IF WE DID HIT OBJECT
         {
+            vec3 pos = ray.origin + dist*ray.direction;
+            vec3 norm = getNormal(pos, objectIndex);         
+            vec3 reflectedRay = reflect(ray.direction, norm);
+            vec3 scol = getObjectColor(pos, objectIndex);
+            vec3 directLight = calculateDirectLighting(Ray(pos, norm));
 
+            ray.direction = reflectedRay;
+            ray.origin = pos;
+
+            intensity *= scol; //*directLight;
+            totalLight += intensity * directLight;
         }
     }
-    
     return totalLight;
 }
 
