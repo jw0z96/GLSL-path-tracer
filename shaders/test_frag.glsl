@@ -11,7 +11,7 @@ layout(location = 0) out vec4 totalColor; // THE COLOR TO WRITE TO THE ACCUMULAT
 layout(location = 1) out vec4 displayColor; // THE COLOR TO DISPLAY ONSCREEN
 
 const float PI = 3.14159265358979323846264338327950288;
-const int MAX_DEPTH = 5;
+const int MAX_DEPTH = 12;
 const float MAX_DRAW_DIST = 100000.0;
 
 struct Ray
@@ -33,18 +33,17 @@ struct Light
 
 // ARRAY OF SPHERES (OUR GEOMETRY)
 Sphere m_spheres[] = Sphere[](
-        Sphere(1.0, vec3(0.0, 1.0, 0.0)), 
-        Sphere(0.5, vec3(0.0, 2.0, 0.0)), 
-        Sphere(100.0, vec3(0.0, -100.0, 0.0))
+        Sphere(1.0, vec3(1.2, 1.0, 0.0)), 
+        Sphere(1.0, vec3(-1.2, 1.0, 0.0)), 
+        Sphere(1000.0, vec3(0.0, -1000.0, 0.0))
     );
 
 // ARRAY OF LIGHTS
 Light m_lights[] = Light[](
-        Light(Sphere(10.0, vec3(2.0, 5.0, -2.0)), vec3(2.0)),
-        Light(Sphere(10.0, vec3(-2.0, 5.0, -2.0)), vec3(0.5, 0.0, 0.0))
+        Light(Sphere(100.0, vec3(0.1, 120, 0.0)), vec3(1.2))
     );
 
-vec3 m_sphereColors[] = vec3[](vec3(0.6, 0.3, 0.0), vec3(0.4, 0.4, 0.4), vec3(0.2));
+vec3 m_sphereColors[] = vec3[](vec3(0.6, 0.6, 0.6), vec3(0.9, 0.1, 0.1), vec3(0.5));
 
 float rand(vec2 co)
 {
@@ -105,6 +104,45 @@ vec3 getRandomLightPoint(Light light)
     return light.area.center + vec3(r*cos(l)*cos(h), r*sin(h), r*sin(l)*cos(h));
 }
 
+vec3 getCosineDirection(float seed, vec3 nor)
+{
+    // compute basis from normal
+    // see http://orbit.dtu.dk/fedora/objects/orbit:113874/datastreams/file_75b66578-222e-4c7d-abdf-f7e255100209/content
+    // (link provided by nimitz)
+    vec3 tc = vec3( 1.0+nor.z-nor.xy*nor.xy, -nor.x*nor.y)/(1.0+nor.z);
+    vec3 uu = vec3( tc.x, tc.z, -nor.x );
+    vec3 vv = vec3( tc.z, tc.y, -nor.y );
+    
+    float u = rand(vec2(frameCount*78.233, seed));
+    float v = rand(vec2(frameCount*10.873, seed));
+    float a = 6.283185 * v;
+
+    return  sqrt(u)*(cos(a)*uu + sin(a)*vv) + sqrt(1.0-u)*nor;
+}
+
+vec3 uniformVector(float seed)
+{
+    float a = 3.141593*rand(vec2(frameCount*78.233, seed));
+    float b = 6.283185*rand(vec2(frameCount*10.873, seed));
+    return vec3( sin(b)*sin(a), cos(b)*sin(a), cos(a));
+}
+
+// HARD CODED BRDF
+vec3 getBRDFRay(vec3 incident, vec3 normal)
+{
+    float rng = rand(vec2(-frameCount,251.0));
+    float glossiness = 0.9;
+    
+    if (mod(rng, 1.0) < glossiness)
+    {
+        return getCosineDirection(rng, normal);
+    }
+    else
+    {
+        return normalize(reflect(incident, normal) + glossiness*uniformVector(rng)); 
+    }
+}
+
 vec3 calculateDirectLighting(Ray surfacePoint)
 {
     vec3 dcol = vec3(0.0);
@@ -157,14 +195,17 @@ vec3 calcPixelColor()
         if (objectIndex < 0) // IF WE DIDNT HIT OBJECT
         {
             intensity *= getBackgroundColor(ray);
-            totalLight += intensity * vec3(0.0);
+            totalLight += intensity * vec3(0.2);
             break;
         }
         else // IF WE DID HIT OBJECT
         {
             vec3 pos = ray.origin + dist*ray.direction;
             vec3 norm = getNormal(pos, objectIndex);         
-            vec3 reflectedRay = reflect(ray.direction, norm);
+
+            /* vec3 reflectedRay = reflect(ray.direction, norm); */
+            vec3 reflectedRay = getBRDFRay(ray.direction, norm);
+            
             vec3 scol = getObjectColor(pos, objectIndex);
             vec3 directLight = calculateDirectLighting(Ray(pos, norm));
 
