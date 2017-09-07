@@ -11,7 +11,7 @@ layout(location = 0) out vec4 totalColor; // THE COLOR TO WRITE TO THE ACCUMULAT
 layout(location = 1) out vec4 displayColor; // THE COLOR TO DISPLAY ONSCREEN
 
 const float PI = 3.14159265358979323846264338327950288;
-const int MAX_DEPTH = 12;
+const int MAX_DEPTH = 4;
 const float MAX_DRAW_DIST = 100000.0;
 
 struct Ray
@@ -35,19 +35,31 @@ struct Light
 Sphere m_spheres[] = Sphere[](
         Sphere(1.0, vec3(1.2, 1.0, 0.0)), 
         Sphere(1.0, vec3(-1.2, 1.0, 0.0)), 
+        Sphere(0.4, vec3(-0.1, 0.4, -1.0)), 
         Sphere(1000.0, vec3(0.0, -1000.0, 0.0))
     );
 
 // ARRAY OF LIGHTS
 Light m_lights[] = Light[](
-        Light(Sphere(100.0, vec3(0.1, 120, 0.0)), vec3(1.2))
+        Light(Sphere(0.5, vec3(1.2, 3, -1.0)), vec3(0.7)),
+        Light(Sphere(0.5, vec3(-1.2, 3, 1.0)), vec3(0.7))
     );
 
-vec3 m_sphereColors[] = vec3[](vec3(0.6, 0.6, 0.6), vec3(0.9, 0.1, 0.1), vec3(0.5));
+vec3 m_sphereColors[] = vec3[](vec3(0.6, 0.6, 0.6), vec3(0.9, 0.1, 0.1), vec3(0.0, 0.2, 0.5), vec3(0.5));
+
+float m_roughness[] = float[](0.1, 0.6, 0.3, 0.9);
 
 float rand(vec2 co)
 {
-    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453 + frameCount);
+}
+
+// GETS A RANDOM UNIFORM VECTOR
+vec3 uniformVector(float seed)
+{
+    float a = 3.141593*rand(vec2(frameCount*78.233, seed));
+    float b = 6.283185*rand(vec2(frameCount*10.873, seed));
+    return vec3( sin(b)*sin(a), cos(b)*sin(a), cos(a));
 }
 
 float intersectSphere(Ray ray, Sphere sphere)
@@ -95,13 +107,10 @@ vec3 getBackgroundColor(Ray ray)
     return mix(vec3(0.0, 0.0, 0.1), vec3(0.8, 0.8, 0.9), (ray.direction.y+1.0)/2.0);
 }
 
-vec3 getRandomLightPoint(Light light)
+vec3 getRandomLightPoint(Light light, int iter)
 {
-    float rng = rand(o_uv + vec2(frameCount));
-    float r = mod(rng, light.area.radius);
-    float l = mod(rng, 2.0*PI);
-    float h = mod(rng, PI) - (PI/2.0);
-    return light.area.center + vec3(r*cos(l)*cos(h), r*sin(h), r*sin(l)*cos(h));
+    float rng = rand(o_uv + vec2(frameCount+iter, -iter*frameCount));
+    return light.area.center + light.area.radius*normalize(uniformVector(rng));
 }
 
 vec3 getCosineDirection(float seed, vec3 nor)
@@ -120,26 +129,19 @@ vec3 getCosineDirection(float seed, vec3 nor)
     return  sqrt(u)*(cos(a)*uu + sin(a)*vv) + sqrt(1.0-u)*nor;
 }
 
-vec3 uniformVector(float seed)
-{
-    float a = 3.141593*rand(vec2(frameCount*78.233, seed));
-    float b = 6.283185*rand(vec2(frameCount*10.873, seed));
-    return vec3( sin(b)*sin(a), cos(b)*sin(a), cos(a));
-}
-
 // HARD CODED BRDF
-vec3 getBRDFRay(vec3 incident, vec3 normal)
+vec3 getBRDFRay(vec3 incident, vec3 normal, int objectIndex)
 {
     float rng = rand(vec2(-frameCount,251.0));
-    float glossiness = 0.9;
+    float roughness = m_roughness[objectIndex];
     
-    if (mod(rng, 1.0) < glossiness)
+    if (mod(rng, 1.0) < roughness)
     {
         return getCosineDirection(rng, normal);
     }
     else
     {
-        return normalize(reflect(incident, normal) + glossiness*uniformVector(rng)); 
+        return normalize(reflect(incident, normal) + roughness*uniformVector(rng)); 
     }
 }
 
@@ -147,40 +149,48 @@ vec3 calculateDirectLighting(Ray surfacePoint)
 {
     vec3 dcol = vec3(0.0);
 
+    int samples = 5;
+
     for (int i = 0; i<m_lights.length(); ++i)
     {
-        // get a random point on the light 
-        vec3 lightPos = getRandomLightPoint(m_lights[i]);
-        /* vec3 lightPos = m_lights[i].area.center; */
-
-        vec3 lightVector = normalize(lightPos - surfacePoint.origin);
-        vec2 shadowInfo = intersectScene(Ray(surfacePoint.origin, lightVector));
-
-        if (shadowInfo.y < 0.0) // IF WE HIT 
+        for (int j = 0; j<samples; ++j)
         {
-            // N DOT L LIGHTING
-            dcol += m_lights[i].intensity * vec3(max(0.0, dot(surfacePoint.direction, lightVector)));
-        }
-        else 
-        {
-            dcol += vec3(0.0);
+            // get a random point on the light 
+            vec3 lightPos = getRandomLightPoint(m_lights[i], j);
+            /* vec3 lightPos = m_lights[i].area.center; */
+
+            vec3 lightVector = normalize(lightPos - surfacePoint.origin);
+            vec2 shadowInfo = intersectScene(Ray(surfacePoint.origin, lightVector));
+
+            if (shadowInfo.y < 0.0) // IF WE HIT 
+            {
+                // N DOT L LIGHTING
+                dcol += m_lights[i].intensity * vec3(max(0.0, dot(surfacePoint.direction, lightVector)));
+            }
+            else 
+            {
+                dcol += vec3(0.0);
+            }
         }
     }
 
-    return dcol;
+    return dcol/samples;
 }
 
 vec3 calcPixelColor()
 {
     vec2 uv = o_uv*2 - 1.0;
     float fov = 60;
-    /* float invWidth = 1.0/float(width); */
-    /* float invHeight = 1.0/float(height); */
+    float invWidth = 1.0/float(width);
+    float invHeight = 1.0/float(height);
     /* float aspectRatio = width/float(height); */
     /* float angle = tan(PI * 0.5 * fov / 180.0); */
    
+    vec2 jitter = vec2(mod(rand(vec2(67.3-frameCount, 103+frameCount)), 1.0) - 0.5, mod(rand(vec2(95*frameCount, 1616-frameCount)), 1.0) - 0.5);
+    vec2 jitterAmount = vec2(invWidth, invHeight);
+
     vec3 rayOrigin = vec3(0.0, 1.0, -3.0);
-    vec3 rayDir = normalize(vec3(uv, 1.0));
+    vec3 rayDir = normalize(vec3(uv, 1.0) + vec3(jitter * jitterAmount, 0.0));
     Ray ray = Ray(rayOrigin, rayDir);
 
     vec3 totalLight = vec3(0.0); // THE TOTAL LIGHT GATHERED
@@ -204,7 +214,7 @@ vec3 calcPixelColor()
             vec3 norm = getNormal(pos, objectIndex);         
 
             /* vec3 reflectedRay = reflect(ray.direction, norm); */
-            vec3 reflectedRay = getBRDFRay(ray.direction, norm);
+            vec3 reflectedRay = getBRDFRay(ray.direction, norm, objectIndex);
             
             vec3 scol = getObjectColor(pos, objectIndex);
             vec3 directLight = calculateDirectLighting(Ray(pos, norm));
