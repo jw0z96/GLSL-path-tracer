@@ -87,7 +87,7 @@ int main (int argc, char *argv[])
         }
         engine.draw();
         SDL_GL_SwapWindow(window);
-        /* SDL_Delay(100); */
+        /* SDL_Delay(1000); */
     }
 
     return EXIT_SUCCESS;

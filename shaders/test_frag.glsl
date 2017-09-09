@@ -2,6 +2,9 @@
 
 in vec2 o_uv; // UV COORDS PASSED BY VERT SHADER
 
+uniform mat4 V;
+uniform mat4 P;
+
 uniform int width; // IMAGE WIDTH
 uniform int height; // IMAGE HEIGHT
 uniform int frameCount; // NUMBER OF SAMPLES
@@ -41,8 +44,8 @@ Sphere m_spheres[] = Sphere[](
 
 // ARRAY OF LIGHTS
 Light m_lights[] = Light[](
-        Light(Sphere(0.5, vec3(1.2, 3, -1.0)), vec3(0.7)),
-        Light(Sphere(0.5, vec3(-1.2, 3, 1.0)), vec3(0.7))
+        Light(Sphere(0.5, vec3(1.2, 3, -1.0)), vec3(0.7))
+        /* Light(Sphere(0.5, vec3(sin(frameCount/10.0), 3, cos(frameCount/10.0))), vec3(0.7)) */
     );
 
 vec3 m_sphereColors[] = vec3[](vec3(0.6, 0.6, 0.6), vec3(0.9, 0.1, 0.1), vec3(0.0, 0.2, 0.5), vec3(0.5));
@@ -189,8 +192,23 @@ vec3 calcPixelColor()
     vec2 jitter = vec2(mod(rand(vec2(67.3-frameCount, 103+frameCount)), 1.0) - 0.5, mod(rand(vec2(95*frameCount, 1616-frameCount)), 1.0) - 0.5);
     vec2 jitterAmount = vec2(invWidth, invHeight);
 
-    vec3 rayOrigin = vec3(0.0, 1.0, -3.0);
-    vec3 rayDir = normalize(vec3(uv, 1.0) + vec3(jitter * jitterAmount, 0.0));
+    mat4 MVP = P * V * mat4(1.0);
+
+    vec3 rayOrigin = inverse(V)[3].xyz;
+    
+    /* vec3 rayDir = normalize(vec3(uv, -1.0) + vec3(jitter * jitterAmount, 0.0)); */
+    
+    
+    vec3 rayDir = vec3(uv, -1.0);
+
+    rayDir = normalize(inverse(V) * vec4(rayDir, 0.0)).xyz;
+
+    /* rayDir = (vec4(rayDir, 0.0) * inverse(V * P)).xyz; */
+
+    /* vec3 rayOrigin = (vec4(1.0, 10.0, 1.0, 1.0) * V * P).xyz; */
+    
+    
+    
     Ray ray = Ray(rayOrigin, rayDir);
 
     vec3 totalLight = vec3(0.0); // THE TOTAL LIGHT GATHERED
@@ -212,8 +230,6 @@ vec3 calcPixelColor()
         {
             vec3 pos = ray.origin + dist*ray.direction;
             vec3 norm = getNormal(pos, objectIndex);         
-
-            /* vec3 reflectedRay = reflect(ray.direction, norm); */
             vec3 reflectedRay = getBRDFRay(ray.direction, norm, objectIndex);
             
             vec3 scol = getObjectColor(pos, objectIndex);
@@ -232,9 +248,12 @@ vec3 calcPixelColor()
 void main()
 {
     vec3 col = calcPixelColor(); // THIS IS THE COLOR VARIABLE TO MANIPULATE
-    vec3 outCol = col + texture(accumulatedTex, o_uv).rgb;
+    /* vec3 outCol = col + texture(accumulatedTex, o_uv).rgb; */
+    /* vec3 outCol = mix(texture(accumulatedTex, o_uv).rgb, col, 1.0/float(frameCount)); */
+    vec3 outCol = mix(texture(accumulatedTex, o_uv).rgb, col, 1.0/10.0);
+    /* vec3 outCol = col; */
     totalColor = vec4(outCol, 1.0);
-    float mult = float(1.0/frameCount); // REDUCE THE TOTAL SAMPLES TO A DISPLAYABLE RANGE
-    displayColor = vec4(outCol*mult, 1.0);
+    /* float mult = float(1.0/frameCount); // REDUCE THE TOTAL SAMPLES TO A DISPLAYABLE RANGE */
+    displayColor = vec4(outCol, 1.0);
 }
 

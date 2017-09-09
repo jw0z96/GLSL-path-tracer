@@ -1,4 +1,6 @@
 #include <GL/glew.h>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -132,11 +134,33 @@ void RenderEngine::init(unsigned int width, unsigned int height, std::string fil
 // DRAWING FUNCTION
 void RenderEngine::draw()
 {
-    float cam_x = 0;
-    float cam_y = 0;
-    float cam_z = 0;
-    
     glUseProgram(userShader);
+
+    glm::vec3 pos = glm::vec3(
+            3.0 * sin((float)frameCount/100.0f), 
+            2.0f, 
+            3.0 * cos((float)frameCount/100.0f)
+            );
+    glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::mat4 m_V = glm::lookAt(pos, target, up);
+
+    glm::mat4 m_P = glm::perspective(35.0f, (float)m_width / (float)m_height, 0.1f, 1000.0f);
+
+    glUniformMatrix4fv(glGetUniformLocation(userShader, "V"), 1, false, glm::value_ptr(m_V));
+    glUniformMatrix4fv(glGetUniformLocation(userShader, "P"), 1, false, glm::value_ptr(m_P));
+ 
+    glm::mat4 i_V = glm::inverse(m_V);
+
+/*     std::cout<<"----\n"; */
+/*     for (int i = 0; i<4; ++i) */
+/*     { */
+/*         for (int j = 0; j<4; ++j) */
+/*         { */
+/*             std::cout<<i_V[j][i]<<", "; */
+/*         } */
+/*         std::cout<<"\n"; */
+/*     } */
     
     if(frameCount%2 == 0)
     {
