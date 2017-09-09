@@ -16,7 +16,7 @@ RenderEngine::RenderEngine()
 RenderEngine::~RenderEngine()
 {
     glDeleteFramebuffers(1, &pingPongFBO0);
-    glDeleteFramebuffers(1, &pingPongFBO0);
+    glDeleteFramebuffers(1, &pingPongFBO1);
 }
 
 // INIT FRAMEBUFFERS AND TEXTURES
@@ -26,6 +26,7 @@ void RenderEngine::init(unsigned int width, unsigned int height, std::string fil
     m_height = height;
     frameCount = 1;
 
+    glewExperimental = true;
     glewInit();
 
     std::vector<GLfloat> texData(m_width * m_height * 4, 0);
@@ -83,7 +84,7 @@ void RenderEngine::init(unsigned int width, unsigned int height, std::string fil
     glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, pingPongOutputTex, 0);
 
     GLenum pingPong1_drawBuffs[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-    glDrawBuffers(2, pingPong0_drawBuffs);
+    glDrawBuffers(2, pingPong1_drawBuffs);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
     {
         std::cout<<"pingPongFBO1 initialised correctly\n";
